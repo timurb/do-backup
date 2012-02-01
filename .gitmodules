@@ -1,3 +1,6 @@
 [submodule "libshell"]
 	path = libshell
 	url = git@github.com:timurbatyrshin/libshell.git
+[submodule "tests/roundup"]
+	path = tests/roundup
+	url = git://github.com/bmizerany/roundup.git
