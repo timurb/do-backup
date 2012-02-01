@@ -1,0 +1,38 @@
+#!/bin/sh -e
+
+. ./libshell/shell-getopt
+. ./libshell/shell-error
+
+usage() {
+  cat << EOF
+Usage:  do-backup -f FILE [-d DESTDIR]
+
+  Files/dirs to backup should be listed in FILE one per line.
+  Lines starting with *exclude* specify locations to exclude from backup
+
+  Options:
+    -d, --destdir DESTDIR	a target dir to put archive into
+EOF
+  exit 1
+}
+
+BACKUPLIST=""
+while getoptex "d: destdir: f: file:" "$@"; do
+  case $OPTOPT in
+    f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
+    d|destdir) DESTDIR="$OPTARG" ;;
+  esac
+done
+
+shift $(($OPTIND-1))
+set -- $@ ${OPTUKN-}
+
+for arg in $@; do
+  fatal "Unknown option found: $arg"
+done
+
+[ -z "$BACKUPLIST" ] && usage
+
+for list in $BACKUPLIST; do
+  [ -r "$list" ] || fatal "File $list is not exist or unreadable"
+done
