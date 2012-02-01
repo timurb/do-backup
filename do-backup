@@ -5,12 +5,13 @@
 
 usage() {
   cat << EOF
-Usage:  do-backup -f FILE [-d DESTDIR]
+Usage:  do-backup -f FILE -d DESTDIR
 
-  Files/dirs to backup should be listed in FILE one per line.
-  Lines starting with *exclude* specify locations to exclude from backup
-
-  Options:
+  Switches:
+    -f  Files/dirs to backup should be listed in FILE one per line.
+        Lines starting with *exclude* specify locations to exclude from backup
+        Several -f switches can be specified in which case several archives
+        will be created.
     -d, --destdir DESTDIR	a target dir to put archive into
 EOF
   exit 1
@@ -32,7 +33,25 @@ for arg in $@; do
 done
 
 [ -z "$BACKUPLIST" ] && usage
+[ -z "$DESTDIR" ] && usage
 
 for list in $BACKUPLIST; do
   [ -r "$list" ] || fatal "File $list is not exist or unreadable"
+done
+
+SUFFIX=$(date +%F-%T | sed 's,:,.,g')
+
+for file in $BACKUPLIST; do
+  LISTNAME=$(basename $file)
+  ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.tgz"
+  BACKUP_LIST=$( cat $file | grep -v '*exclude*' )
+  EXCLUDE=$(cat $file | grep '*exclude*' | sed 's,^[[:blank:]]\*exclude\*[[:blank:]]*,,')
+
+  EXCLUDE_LIST=''
+  for pattern in $EXCLUDE; do
+    EXCLUDE_LIST="$EXCLUDE_LIST --exclude=$pattern"
+  done 
+
+echo  tar -C $DESTDIR -zcf $ARCHIVE $BACKUP_LIST $EXCLUDE_LIST
+  tar -C $DESTDIR -zcf $ARCHIVE $BACKUP_LIST $EXCLUDE_LIST
 done

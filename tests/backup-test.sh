@@ -35,7 +35,7 @@ EOF
   echo "$SRC" > "$FILELIST"
 
   echo "$SRC" > "$EXCLUDELIST"
-  echo "*excludes* $SRC/dir2" > "$EXCLUDELIST"
+  echo "*exclude* $SRC/dir2" >> "$EXCLUDELIST"
 }
 
 after() {
@@ -46,29 +46,35 @@ it_displays_usage() {
   "$BACKUP" 2>&1 | grep -qi 'Usage'
 }
 
-it_exits_non_zero_when_not_run() {
+it_exits_non_zero_on_usage() {
   ! "$BACKUP"
 }
 
+it_requires_f_switch() {
+  ! "$BACKUP" -d "$DST"
+}
+
+it_requires_d_switch() {
+  ! "$BACKUP" -f "$FILELIST"
+}
+
 it_exits_with_zero_after_successful_backup() {
-  "$BACKUP" -f "$FILELIST"
+  "$BACKUP" -f "$FILELIST" -d "$DST"
 }
 
 it_fails_on_unknown_options() {
-  ! "$BACKUP" --some --strante --option
+  ! "$BACKUP" --some --strante --option -f "$FILELIST" -d "$DST"
 }
 
 it_fails_when_list_not_found() {
-  ! "$BACKUP" -f /some/strange/path
+  ! "$BACKUP" -f /some/strange/path -d "$DST"
 }
 
-it_places_archive_to_currentdir_when_destdir_not_specified() {
-  "$BACKUP" -f "$FILELIST"
-  RESULT=$(find . -name $ARCHIVENAME)
-  test -n "$RESULT"
+it_fails_when_destdir_not_found() {
+  ! "$BACKUP" -f "$FILELIST" -d /some/strange/path
 }
 
-it_places_archive_to_destdir() {
+it_creates_archive_in_destdir() {
   "$BACKUP" -f "$FILELIST" -d "$DST"
   RESULT=$(find "$DST" -name $ARCHIVENAME)
   test -n "$RESULT"
@@ -77,12 +83,12 @@ it_places_archive_to_destdir() {
 it_does_a_correct_backup() {
   "$BACKUP" -f "$FILELIST" -d "$DST"
   tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME")
-  diff -r "$SRC" "$DST" -q
+  diff -r "$SRC" "$DST/$SRC" -q
 }
 
 it_honors_excludes() {
   "$BACKUP" -f "$EXCLUDELIST" -d "$DST"
   tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME")
   rm -rf "$SRC/dir2"
-  diff -r "$SRC" "$DST" -q
+  diff -r "$SRC" "$DST/$SRC" -q
 }
