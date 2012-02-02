@@ -49,6 +49,10 @@ after() {
   rm -rf "$WORKDIR"
 }
 
+it_should_produce_usage_about_encryption() {
+  $BACKUP 2>&1 | grep -qi encrypt
+}
+
 it_should_not_fail_when_encrypting() {
   GNUPGHOME="$KEYRING" $BACKUP -f "$FILELIST" -d "$DST" -e $KEY
 }

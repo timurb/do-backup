@@ -1,3 +1,3 @@
 #!/bin/sh
 
-tests/roundup/roundup.sh tests/*
+tests/roundup/roundup.sh tests/*-test.sh

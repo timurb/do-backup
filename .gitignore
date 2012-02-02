@@ -2,3 +2,4 @@
 *~
 random_seed
 tests/keyring
+tests/.aws*
