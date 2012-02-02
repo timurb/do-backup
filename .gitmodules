@@ -4,3 +4,6 @@
 [submodule "tests/roundup"]
 	path = tests/roundup
 	url = git://github.com/bmizerany/roundup.git
+[submodule "aws"]
+	path = aws
+	url = https://github.com/timkay/aws.git
