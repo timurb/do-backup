@@ -46,8 +46,7 @@ before() {
 }
 
 after() {
-  echo
-#  rm -rf "$WORKDIR"
+  rm -rf "$WORKDIR"
 }
 
 it_should_not_fail_when_encrypting() {
