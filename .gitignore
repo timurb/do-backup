@@ -1,0 +1,4 @@
+*.gpg
+*~
+random_seed
+tests/keyring

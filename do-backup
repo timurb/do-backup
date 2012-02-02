@@ -18,10 +18,11 @@ EOF
 }
 
 BACKUPLIST=""
-while getoptex "d: destdir: f: file:" "$@"; do
+while getoptex "d: destdir: f: file: e: encrypt:" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
     d|destdir) DESTDIR="$OPTARG" ;;
+    e|encrypt) ENCRYPT="$OPTARG" ;;
   esac
 done
 
@@ -36,7 +37,7 @@ done
 [ -z "$DESTDIR" ] && usage
 
 for list in $BACKUPLIST; do
-  [ -r "$list" ] || fatal "File $list is not exist or unreadable"
+  [ -r "$list" ] || fatal "File $list is not existant or unreadable"
 done
 
 SUFFIX=$(date +%F-%T | sed 's,:,.,g')
@@ -52,6 +53,8 @@ for file in $BACKUPLIST; do
     EXCLUDE_LIST="$EXCLUDE_LIST --exclude=$pattern"
   done 
 
-echo  tar -C $DESTDIR -zcf $ARCHIVE $BACKUP_LIST $EXCLUDE_LIST
-  tar -C $DESTDIR -zcf $ARCHIVE $BACKUP_LIST $EXCLUDE_LIST
+  tar -C "$DESTDIR" -zcf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
+  if [ -n "$ENCRYPT" ]; then
+    gpg -r "$ENCRYPT" -e "$ARCHIVE" 
+  fi
 done
