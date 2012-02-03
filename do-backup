@@ -8,21 +8,27 @@ usage() {
 Usage:  do-backup -f FILE -d DESTDIR
 
   Switches:
-    -f  Files/dirs to backup should be listed in FILE one per line.
-        Lines starting with *exclude* specify locations to exclude from backup
+    -f, --file FILE 		Files/dirs to backup should be listed in FILE one
+        per line. Lines starting with *exclude* specifyi locations to exclude
+        from backup.
+
         Several -f switches can be specified in which case several archives
         will be created.
     -d, --destdir DESTDIR	a target dir to put archive into
+    -e, --encrypt KEY		encrypt backup with specified GPG key
+    -u, --upload BUCKET		upload archive to S3 bucket
 EOF
   exit 1
 }
 
 BACKUPLIST=""
-while getoptex "d: destdir: f: file: e: encrypt:" "$@"; do
+while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret:" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
     d|destdir) DESTDIR="$OPTARG" ;;
     e|encrypt) ENCRYPT="$OPTARG" ;;
+    u|upload)  UPLOAD="$OPTARG" ;;
+    s|secret)  SECRET="--secrets-file=$OPTARG" ;;
   esac
 done
 
@@ -56,5 +62,8 @@ for file in $BACKUPLIST; do
   tar -C "$DESTDIR" -zcf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
   if [ -n "$ENCRYPT" ]; then
     gpg -r "$ENCRYPT" -e "$ARCHIVE" 
+    ARCHIVE="$ARCHIVE.gpg"
   fi
+  [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename $ARCHIVE)" "$ARCHIVE"
+  echo "$ARCHIVE"
 done
