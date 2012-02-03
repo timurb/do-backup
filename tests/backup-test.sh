@@ -11,15 +11,10 @@ done
 
 before() {
   WORKDIR=$(mktemp -d)
-  PREFIX='files'
-  EXCLUDELIST="$WORKDIR/$PREFIX-excl"
   SRC="$WORKDIR/src"
   DST="$WORKDIR/dst"
-  ARCHIVENAME="files*.tgz"   # this might not prove very reliable but should be ok
-                               # while we process only a single list
-  ARCHIVENAME1="files1*.tgz"
-  ARCHIVENAME2="files2*.tgz"
-  ARCHIVENAMEML="filesML*.tgz"
+  ARCHIVENAME="files*.tgz"   # this is used only for checking the file created
+                             # matches the output
 
   mkdir -p "$SRC/dir1" "$SRC/dir2" "$DST"
   echo 'file one' > "$SRC/one"
@@ -39,8 +34,8 @@ EOF
   echo "$SRC/dir1" > "$WORKDIR/filesML"
   echo "$SRC/dir2" >> "$WORKDIR/filesML"
 
-  echo "$SRC" > "$EXCLUDELIST"
-  echo "*exclude* $SRC/dir2" >> "$EXCLUDELIST"
+  echo "$SRC" > "$WORKDIR/files-excl"
+  echo "*exclude* $SRC/dir2" >> "$WORKDIR/files-excl"
 }
 
 after() {
@@ -80,41 +75,43 @@ it_fails_when_destdir_not_found() {
 }
 
 it_creates_archive_in_destdir() {
-  $BACKUP -f "$WORKDIR/files" -d "$DST"
+  OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST")
   RESULT=$(find "$DST" -name "$ARCHIVENAME")
   test -n "$RESULT"
+  test -e "$OUTPUT"
+  test "$OUTPUT" = "$RESULT"
 }
 
 it_does_a_correct_backup() {
-  $BACKUP -f "$WORKDIR/files" -d "$DST"
-  tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME")
+  OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST")
+  tar -C "$DST" -xf $OUTPUT
   diff -r "$SRC" "$DST/$SRC" -q
 }
 
 it_honors_excludes() {
-  $BACKUP -f "$EXCLUDELIST" -d "$DST"
-  tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME")
+  OUTPUT=$($BACKUP -f "$WORKDIR/files-excl" -d "$DST")
+  tar -C "$DST" -xf $OUTPUT
   rm -rf "$SRC/dir2"
   diff -r "$SRC" "$DST/$SRC" -q
 }
 
 it_backups_correctly_with_provided_several_f_params() {
-  $BACKUP -f "$WORKDIR/files1" -f "$WORKDIR/files2" -d "$DST"
+  OUTPUT=$($BACKUP -f "$WORKDIR/files1" -f "$WORKDIR/files2" -d "$DST")
   mv "$SRC" "${SRC}1"
   mkdir "$SRC"
   cp -ar "${SRC}1/dir1" "$SRC"
-  tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME1")
+  tar -C "$DST" -xf $(echo $OUTPUT | cut -f 1 -d' ')
   diff -r "$SRC" "$DST/$SRC" -q
   rm -rf "$DST/$SRC" "$SRC"
   mkdir "$SRC"
   cp -ar "${SRC}1/dir2" "$SRC"
-  tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME2")
+  tar -C "$DST" -xf  $(echo $OUTPUT | cut -f 2 -d' ')
   diff -r "$SRC" "$DST/$SRC" -q
 }
 
 it_accepts_several_lines_in_list() {
-  $BACKUP -f "$WORKDIR/filesML" -d "$DST"
-  tar -C "$DST" -xf $(find "$DST" -name "$ARCHIVENAME")
+  OUTPUT=$($BACKUP -f "$WORKDIR/filesML" -d "$DST")
+  tar -C "$DST" -xf $OUTPUT
   rm -rf "$SRC/one" "$SRC/two"
   diff -r "$SRC" "$DST/$SRC" -q
 }

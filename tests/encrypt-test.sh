@@ -32,17 +32,15 @@ before() {
   [ -d "$KEYRING" -a -r "$KEYRING/pubring.gpg" -a -r "$KEYRING/secring.gpg" ] || create_keyring
 
   WORKDIR=$(mktemp -d)
-  PREFIX='files'
-  FILELIST="$WORKDIR/$PREFIX"
   SRC="$WORKDIR/src"
   DST="$WORKDIR/dst"
-  ARCHIVENAME="$PREFIX*.gpg"   # this might not prove reliable but should be ok
+  ARCHIVENAME="files*.gpg"   # this might not prove reliable but should be ok
                                # while we process only single list
   KEY='test'
 
   mkdir -p "$SRC" "$DST"
   echo 'file one' > "$SRC/one"
-  echo "$SRC" > "$FILELIST"
+  echo "$SRC" > "$WORKDIR/files"
 }
 
 after() {
@@ -54,17 +52,19 @@ it_should_produce_usage_about_encryption() {
 }
 
 it_should_not_fail_when_encrypting() {
-  GNUPGHOME="$KEYRING" $BACKUP -f "$FILELIST" -d "$DST" -e $KEY
+  GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY
 }
 
 it_creates_encrypted_archive_in_destdir() {
-  GNUPGHOME="$KEYRING" $BACKUP -f "$FILELIST" -d "$DST" -e $KEY
+  OUTPUT=$(GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY)
   RESULT=$(find "$DST" -name $ARCHIVENAME)
   test -n "$RESULT"
+  test -e "$OUTPUT"
+  test "$OUTPUT" = "$RESULT"
 }
 
 it_should_encrypt_correctly() {
-  GNUPGHOME="$KEYRING" $BACKUP -f "$FILELIST" -d "$DST" -e $KEY
-  echo dummy | $GPG -d $(find "$DST" -name "$ARCHIVENAME") | tar -C "$DST" -zx
+  OUTPUT=$(GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY)
+  echo dummy | $GPG -d $OUTPUT | tar -C "$DST" -zx
   diff -r "$SRC" "$DST/$SRC" -q
 }
