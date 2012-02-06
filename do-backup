@@ -17,18 +17,45 @@ Usage:  do-backup -f FILE -d DESTDIR
     -d, --destdir DESTDIR	a target dir to put archive into
     -e, --encrypt KEY		encrypt backup with specified GPG key
     -u, --upload BUCKET		upload archive to S3 bucket
+    -r, --rotate NUMBER		keep NUMBER of last archives
+                                this applies both to local storage and to S3
 EOF
   exit 1
 }
 
+#  rotator() - Makes actual rotation
+#  Params:
+#    LIST_COMMAND should produce a list of backups -- one per line
+#    RM_COMMAND should remove a backup supplied as a parameter.
+#    !!! NO space added after the command to let it construct paths
+#        therefore you should specify 'rm -f ' instead of 'rm -f' for that
+rotator() {
+  [ -z "$2" ] && fatal "Usage: rotator 'LIST COMMAND' 'RM COMMAND'"
+
+  LISTC="$1"
+  RMC="$2"
+
+  CNT=$( eval "$LISTC" | wc -l)
+  if [ $CNT -gt $ROTATE ]; then
+    ROT=$(($CNT - $ROTATE))
+    for file in $( eval "$LISTC" | sort | head -n $ROT ); do
+      eval "${RMC}${file}"
+    done
+  fi
+}
+
 BACKUPLIST=""
-while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret:" "$@"; do
+while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate:" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
     d|destdir) DESTDIR="$OPTARG" ;;
     e|encrypt) ENCRYPT="$OPTARG" ;;
     u|upload)  UPLOAD="$OPTARG" ;;
     s|secret)  SECRET="--secrets-file=$OPTARG" ;;
+    r|rotate)
+      ROTATE="$OPTARG"
+      [ "$ROTATE" -gt 0 ] || fatal "--rotate requires positive integer as a param"
+      ;;
   esac
 done
 
@@ -50,7 +77,10 @@ SUFFIX=$(date +%F-%T | sed 's,:,.,g')
 
 for file in $BACKUPLIST; do
   LISTNAME=$(basename $file)
+  [ -n "$ENCRYPT" ] && EXT='gpg' || EXT='tgz'
   ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.tgz"
+  MATCH="$LISTNAME-*.$EXT"
+  S3MATCH="$LISTNAME-.*\.$EXT"
   BACKUP_LIST=$( cat $file | grep -v 'exclude:' )
   EXCLUDE=$(cat $file | grep 'exclude:' | sed 's,^[[:blank:]]\*exclude\*[[:blank:]]*,,')
 
@@ -66,4 +96,12 @@ for file in $BACKUPLIST; do
   fi
   [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
   echo "$ARCHIVE"
+
+  if [ -n "$ROTATE" ]; then
+    rotator "find \"$DESTDIR\" -name \"$MATCH\"" 'rm -f '
+    if [ -n "$UPLOAD" ]; then
+      rotator "aws --silent --simple \"$SECRET\" ls \"$UPLOAD\" | awk '{print \$4}' | grep \"$S3MATCH\"" \
+              "aws --silent --simple \"$SECRET\" rm $UPLOAD/"
+    fi
+  fi
 done
