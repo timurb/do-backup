@@ -34,6 +34,7 @@ before() {
   SRC="$WORKDIR/src"
   DST="$WORKDIR/dst"
   KEY='test'
+  ROTATE=10
   mkdir -p "$SRC" "$DST"
   echo 'file one' > "$SRC/one"
   echo "$SRC" > "$FILELIST"
@@ -66,12 +67,12 @@ it_should_fail_on_nonpositive_number() {
 }
 
 it_should_rotate_local_archives() {
-  FIRST=$($BACKUP -f "$WORKDIR/files" -d "$DST" -r 10)
+  FIRST=$($BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE")
   sleep 1
-  SECOND=$($BACKUP -f "$WORKDIR/files" -d "$DST" -r 10)
-  for x in 1 2 3 4 5 6 7 8 9; do
+  SECOND=$($BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE")
+  for x in $(seq $(( $ROTATE - 1)) ); do
     sleep 1
-    $BACKUP -f "$WORKDIR/files" -d "$DST" -r 10
+    $BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE"
   done
   test ! -e "$FIRST"
   test -e "$SECOND"
@@ -80,12 +81,12 @@ it_should_rotate_local_archives() {
 it_should_rotate_encrypted_archives() {
   echo "GPG keyring should be in $KEYRING"
   test -d "$KEYRING" -a -r "$KEYRING/pubring.gpg" -a -r "$KEYRING/secring.gpg"
-  FIRST=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r 10 -e $KEY )
+  FIRST=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE" -e $KEY )
   sleep 1
-  SECOND=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r 10 -e $KEY )
-  for x in 1 2 3 4 5 6 7 8 9; do
+  SECOND=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE" -e $KEY )
+  for x in $(seq $(( $ROTATE - 1)) ); do
     sleep 1
-    GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r 10 -e $KEY 
+    GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE" -e $KEY 
   done
   test ! -e "$FIRST"
   test -e "$SECOND"
@@ -95,13 +96,13 @@ it_should_rotate_uploaded_archives() {
   [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
   export BUCKET=$(cat $AWSBUCKET)
 
-  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r 5 ))
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
   # sleep 1   # this is not needed here as upload to S3 is quite lengthy
-  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r 5 ))
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
   CLEANUP="$FIRST $SECOND"
-  for x in 1 2 3 4; do
+  for x in $(seq $(( $ROTATE - 1)) ); do
     # sleep 1   # this is not needed here as upload to S3 is quite lengthy
-    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r 5 )
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" )
     CLEANUP="$CLEANUP $OUTPUT"
   done
   ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
