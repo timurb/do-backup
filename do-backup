@@ -9,7 +9,7 @@ Usage:  do-backup -f FILE -d DESTDIR
 
   Switches:
     -f, --file FILE 		Files/dirs to backup should be listed in FILE one
-        per line. Lines starting with *exclude* specifyi locations to exclude
+        per line. Lines starting with 'exclude:' specify locations to exclude
         from backup.
 
         Several -f switches can be specified in which case several archives
@@ -51,8 +51,8 @@ SUFFIX=$(date +%F-%T | sed 's,:,.,g')
 for file in $BACKUPLIST; do
   LISTNAME=$(basename $file)
   ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.tgz"
-  BACKUP_LIST=$( cat $file | grep -v '*exclude*' )
-  EXCLUDE=$(cat $file | grep '*exclude*' | sed 's,^[[:blank:]]\*exclude\*[[:blank:]]*,,')
+  BACKUP_LIST=$( cat $file | grep -v 'exclude:' )
+  EXCLUDE=$(cat $file | grep 'exclude:' | sed 's,^[[:blank:]]\*exclude\*[[:blank:]]*,,')
 
   EXCLUDE_LIST=''
   for pattern in $EXCLUDE; do
@@ -64,6 +64,6 @@ for file in $BACKUPLIST; do
     gpg -r "$ENCRYPT" -e "$ARCHIVE" 
     ARCHIVE="$ARCHIVE.gpg"
   fi
-  [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename $ARCHIVE)" "$ARCHIVE"
+  [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
   echo "$ARCHIVE"
 done

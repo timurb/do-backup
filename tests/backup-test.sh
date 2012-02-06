@@ -35,7 +35,7 @@ EOF
   echo "$SRC/dir2" >> "$WORKDIR/filesML"
 
   echo "$SRC" > "$WORKDIR/files-excl"
-  echo "*exclude* $SRC/dir2" >> "$WORKDIR/files-excl"
+  echo "exclude:              $SRC/dir2" >> "$WORKDIR/files-excl"
 }
 
 after() {
