@@ -115,3 +115,9 @@ it_accepts_several_lines_in_list() {
   rm -rf "$SRC/one" "$SRC/two"
   diff -r "$SRC" "$DST/$SRC" -q
 }
+
+it_should_do_a_correct_backup_with_special_file_provided_as_an_input() {
+  OUTPUT=$( cat "$WORKDIR/files" | $BACKUP -f /proc/self/fd/0 -d "$DST" | grep -v '/proc/self/fd/0' )
+  tar -C "$DST" -xf $OUTPUT
+  diff -r "$SRC" "$DST/$SRC" -q
+}

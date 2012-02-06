@@ -109,3 +109,17 @@ it_should_rotate_uploaded_archives() {
   aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
   cleanup "$CLEANUP"
 }
+
+it_should_produce_warning_on_stderr_on_rotation_with_special_files() {
+  cat "$WORKDIR/files" | $BACKUP -f /proc/self/fd/0 -d "$DST" -r "$ROTATE" 2>&1 > /dev/null | grep -qi warning
+}
+
+it_should_not_produce_warning_on_stdout_on_rotation_with_special_files() {
+  ! (cat "$WORKDIR/files" | $BACKUP -f /proc/self/fd/0 -d "$DST" -r "$ROTATE" | grep -qi warning )
+}
+
+it_should_do_a_correct_backup_with_special_file_provided_as_an_input_and_rotation_enabled() {
+  OUTPUT=$( cat "$WORKDIR/files" | $BACKUP -f /proc/self/fd/0 -d "$DST" -r "$ROTATE" | grep -v '/proc/self/fd/0' )
+  tar -C "$DST" -xf $OUTPUT
+  diff -r "$SRC" "$DST/$SRC" -q
+}

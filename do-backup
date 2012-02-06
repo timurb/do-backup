@@ -98,10 +98,14 @@ for file in $BACKUPLIST; do
   echo "$ARCHIVE"
 
   if [ -n "$ROTATE" ]; then
-    rotator "find \"$DESTDIR\" -name \"$MATCH\"" 'rm -f '
-    if [ -n "$UPLOAD" ]; then
-      rotator "aws --silent --simple \"$SECRET\" ls \"$UPLOAD\" | awk '{print \$4}' | grep \"$S3MATCH\"" \
-              "aws --silent --simple \"$SECRET\" rm $UPLOAD/"
+    if ( echo "$file" | egrep '^(/proc|/dev)' ); then
+      echo WARNING: Input file is special device or descriptor -- rotation disabled > /dev/stderr
+    else
+      rotator "find \"$DESTDIR\" -name \"$MATCH\"" 'rm -f '
+      if [ -n "$UPLOAD" ]; then
+        rotator "aws --silent --simple \"$SECRET\" ls \"$UPLOAD\" | awk '{print \$4}' | grep \"$S3MATCH\"" \
+                "aws --silent --simple \"$SECRET\" rm $UPLOAD/"
+      fi
     fi
   fi
 done
