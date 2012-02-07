@@ -9,8 +9,10 @@ Usage:  do-backup -f FILE -d DESTDIR
 
   Switches:
     -f, --file FILE 		Files/dirs to backup should be listed in FILE one
-        per line. Lines starting with 'exclude:' specify locations to exclude
-        from backup.
+        per line.
+        Lines starting with 'exclude:' specify locations to exclude from backup.
+        Lines starting with 'pre:' and 'post:' specify shell commands to run
+        before and after backup running.
 
         Several -f switches can be specified in which case several archives
         will be created.
@@ -42,6 +44,15 @@ rotator() {
       eval "${RMC}${file}"
     done
   fi
+}
+
+run_hooks() {
+  OLD_IFS=$IFS
+  IFS="\n"
+  for command in $@; do
+    eval "$command" 1>&2
+  done
+  IFS=$OLD_IFS
 }
 
 BACKUPLIST=""
@@ -81,13 +92,23 @@ for file in $BACKUPLIST; do
   ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.tgz"
   MATCH="$LISTNAME-*.$EXT"
   S3MATCH="$LISTNAME-.*\.$EXT"
-  BACKUP_LIST=$( cat $file | grep -v 'exclude:' )
-  EXCLUDE=$(cat $file | grep 'exclude:' | sed 's,^[[:blank:]]\*exclude\*[[:blank:]]*,,')
 
+  BACKUP_LIST=''
   EXCLUDE_LIST=''
-  for pattern in $EXCLUDE; do
-    EXCLUDE_LIST="$EXCLUDE_LIST --exclude=$pattern"
-  done 
+  while read line; do
+    case "$line" in
+      \#*) ;;	# a comment
+      exclude:*)
+         EXCLUDE_LIST="$EXCLUDE_LIST --exclude=$(echo $line | sed 's,^exclude:[[:blank:]]*,,')" ;;
+      pre:*)
+         PRE="$PRE\n$(echo $line | sed 's,^pre:[[:blank:]]*,,')" ;;
+      post:*)
+         POST="$POST\n$(echo $line | sed 's,^post:[[:blank:]]*,,')" ;;
+      *) BACKUP_LIST="$BACKUP_LIST $( echo $line | egrep -v '^[[:blank:]]*(exclude|pre|post)[[:blank:]]*:' )"
+    esac
+  done < "$file"
+
+  run_hooks "$PRE"
 
   tar -C "$DESTDIR" -zcf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
   if [ -n "$ENCRYPT" ]; then
@@ -96,6 +117,8 @@ for file in $BACKUPLIST; do
   fi
   [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
   echo "$ARCHIVE"
+
+  run_hooks "$POST"
 
   if [ -n "$ROTATE" ]; then
     if ( echo "$file" | egrep '^(/proc|/dev)' ); then
