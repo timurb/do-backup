@@ -55,8 +55,16 @@ it_should_produce_usage_about_rotation() {
   $BACKUP 2>&1 | grep -qi rotat
 }
 
+it_should_produce_usage_about_detailed_rotation_keys() {
+  $BACKUP 2>&1 | grep -i rotat | egrep -qi '(local|remot)'
+}
+
 it_should_accept_key_for_rotation() {
   OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST" -r 10)
+}
+
+it_should_accept_lr_and_rr_keys_for_rotation() {
+  OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST" --lr 10 --rr 20 )
 }
 
 it_should_fail_on_nonpositive_number() {
@@ -73,6 +81,30 @@ it_should_rotate_local_archives() {
   for x in $(seq $(( $ROTATE - 1)) ); do
     sleep 1
     $BACKUP -f "$WORKDIR/files" -d "$DST" -r "$ROTATE"
+  done
+  test ! -e "$FIRST"
+  test -e "$SECOND"
+}
+
+it_should_rotate_local_archives_through_lr_switch() {
+  FIRST=$($BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE")
+  sleep 1
+  SECOND=$($BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE")
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    sleep 1
+    $BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE"
+  done
+  test ! -e "$FIRST"
+  test -e "$SECOND"
+}
+
+it_should_override_r_switch_by_lr() {
+  FIRST=$($BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE" -r 1)
+  sleep 1
+  SECOND=$($BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE" -r 1)
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    sleep 1
+    $BACKUP -f "$WORKDIR/files" -d "$DST" --lr "$ROTATE" -r 1
   done
   test ! -e "$FIRST"
   test -e "$SECOND"
@@ -107,6 +139,62 @@ it_should_rotate_uploaded_archives() {
   done
   ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
   aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  cleanup "$CLEANUP"
+}
+
+it_should_rotate_uploaded_archives_through_rr_switch() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" ))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" ))
+  CLEANUP="$FIRST $SECOND"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" )
+    CLEANUP="$CLEANUP $OUTPUT"
+  done
+  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  cleanup "$CLEANUP"
+}
+
+it_should_override_r_switch_by_rr() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 ))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 ))
+  CLEANUP="$FIRST $SECOND"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 )
+    CLEANUP="$CLEANUP $OUTPUT"
+  done
+  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  cleanup "$CLEANUP"
+}
+
+it_should_treat_lr_and_rr_switches_differently() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))"))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))"))
+  CLEANUP="$FIRST $SECOND"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))")
+    CLEANUP="$CLEANUP $OUTPUT"
+  done
+  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  test ! -e "$FIRST"
+  test ! -e "$SECOND"
   cleanup "$CLEANUP"
 }
 
