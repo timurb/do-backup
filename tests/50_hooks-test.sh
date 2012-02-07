@@ -26,7 +26,7 @@ before() {
   echo "post: touch $POST-1" >> "$WORKDIR/files"
 }
 
-xafter() {
+after() {
   rm -rf "$WORKDIR"
 }
 

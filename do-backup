@@ -49,7 +49,7 @@ rotator() {
 run_hooks() {
   OLD_IFS=$IFS
   IFS="\n"
-  for command in $@; do
+  echo "$@" | while read command; do
     eval "$command" 1>&2
   done
   IFS=$OLD_IFS
@@ -104,7 +104,7 @@ for file in $BACKUPLIST; do
          PRE="$PRE\n$(echo $line | sed 's,^pre:[[:blank:]]*,,')" ;;
       post:*)
          POST="$POST\n$(echo $line | sed 's,^post:[[:blank:]]*,,')" ;;
-      *) BACKUP_LIST="$BACKUP_LIST $( echo $line | egrep -v '^[[:blank:]]*(exclude|pre|post)[[:blank:]]*:' )"
+      *) BACKUP_LIST="$BACKUP_LIST $line"
     esac
   done < "$file"
 
