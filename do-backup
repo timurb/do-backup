@@ -5,14 +5,16 @@
 
 usage() {
   cat << EOF
-Usage:  do-backup -f FILE -d DESTDIR
+Usage:  do-backup -f FILE -d DESTDIR [OPTIONS]
 
   Switches:
     -f, --file FILE 		Files/dirs to backup should be listed in FILE one
-        per line.
+                                per line.
         Lines starting with 'exclude:' specify locations to exclude from backup.
         Lines starting with 'pre:' and 'post:' specify shell commands to run
-        before and after backup running.
+          before and after backup running.
+        Lines starting with 'compress:' specify which kind of compression to
+          apply to archive. Possible values: tar, gzip. Default: gzip
 
         Several -f switches can be specified in which case several archives
         will be created.
@@ -55,7 +57,8 @@ run_hooks() {
   IFS=$OLD_IFS
 }
 
-BACKUPLIST=""
+BACKUPLIST=''
+
 while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate:" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
@@ -88,29 +91,43 @@ SUFFIX=$(date +%F-%T | sed 's,:,.,g')
 
 for file in $BACKUPLIST; do
   LISTNAME=$(basename $file)
-  [ -n "$ENCRYPT" ] && EXT='gpg' || EXT='tgz'
-  ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.tgz"
-  MATCH="$LISTNAME-*.$EXT"
-  S3MATCH="$LISTNAME-.*\.$EXT"
-
+  AEXT='tgz'
+  COMPRESS='-z'
   BACKUP_LIST=''
   EXCLUDE_LIST=''
+
   while read line; do
     case "$line" in
       \#*) ;;	# a comment
       exclude:*)
          EXCLUDE_LIST="$EXCLUDE_LIST --exclude=$(echo $line | sed 's,^exclude:[[:blank:]]*,,')" ;;
       pre:*)
-         PRE="$PRE\n$(echo $line | sed 's,^pre:[[:blank:]]*,,')" ;;
+         PRE="$PRE\n$(echo "$line" | sed 's,^pre:[[:blank:]]*,,')" ;;
       post:*)
-         POST="$POST\n$(echo $line | sed 's,^post:[[:blank:]]*,,')" ;;
-      *) BACKUP_LIST="$BACKUP_LIST $line"
+         POST="$POST\n$(echo "$line" | sed 's,^post:[[:blank:]]*,,')" ;;
+      compress:*)
+        line="$( echo "$line" | sed 's,^compress:[[:blank:]]*,,')"
+        case "$line" in
+          none|tar)
+            AEXT='tar'
+            COMPRESS='' ;;
+          gz|gzip)
+            AEXT='tgz'
+            COMPRESS='-z' ;;
+          *)  fatal "Unknown compression method: '$line'" ;;
+        esac ;;
+      *) BACKUP_LIST="$BACKUP_LIST $line" ;;
     esac
   done < "$file"
 
+  [ -n "$ENCRYPT" ] && EXT='gpg' || EXT="$AEXT"
+  ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.$AEXT"
+  MATCH="$LISTNAME-*.$EXT"
+  S3MATCH="$LISTNAME-.*\.$EXT"
+
   run_hooks "$PRE"
 
-  tar -C "$DESTDIR" -zcf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
+  tar -C "$DESTDIR" $COMPRESS -cf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
   if [ -n "$ENCRYPT" ]; then
     gpg -r "$ENCRYPT" -e "$ARCHIVE" 
     ARCHIVE="$ARCHIVE.gpg"
