@@ -72,9 +72,11 @@ it_should_fail_on_uploading_with_wrong_credentials(){
 
 it_should_upload_archive_correctly() {
   OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" )
-  aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$WORKDIR/uploaded.tgz"
+  rm -rf "$DST"
+  mkdir "$DST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$DST/uploaded.tgz"
   cleanup "$OUTPUT"
-  tar -C "$DST" -xf "$WORKDIR/uploaded.tgz"
+  tar -C "$DST" -xf "$DST/uploaded.tgz"
   diff -r "$SRC" "$DST/$SRC" -q
 }
 
@@ -89,8 +91,10 @@ it_should_be_able_to_upload_encrypted_archive_correctly() {
   echo "GPG keyring should be in $KEYRING"
   test -d "$KEYRING" -a -r "$KEYRING/pubring.gpg" -a -r "$KEYRING/secring.gpg"
   OUTPUT=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -e $KEY)
-  aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$WORKDIR/uploaded.gpg"
+  rm -rf "$DST"
+  mkdir "$DST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$DST/uploaded.gpg"
   cleanup "$OUTPUT"
-  echo dummy | $GPG -d "$WORKDIR/uploaded.gpg" | tar -C "$DST" -zx
+  echo dummy | $GPG -d "$DST/uploaded.gpg" | tar -C "$DST" -zx
   diff -r "$SRC" "$DST/$SRC" -q
 }
