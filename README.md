@@ -6,15 +6,17 @@ Description
 
 This is a tool to do backups.
 It stores specified files in tar archive and optionally:
- * compresses it
- * encrypts it
- * uploads to S3
- * rotates locally
- * rotates remotely
+
+* compresses it
+* encrypts it
+* uploads to S3
+* rotates locally
+* rotates remotely
 
 Besides it can:
- * exclude specified files from an archive
- * run pre and post hooks
+
+* exclude specified files from an archive
+* run pre and post hooks
 
 Why one more of them?
 ---------------------
@@ -46,32 +48,32 @@ the same dir as do-backup (in libshell/ subdir)
 Usage
 -----
 
-do-backup -f FILE -d DESTDIR [OPTIONS]
+    do-backup -f FILE -d DESTDIR [OPTIONS]
 
-Switches:
-  -f, --file FILE
-      Files/dirs to backup should be listed in FILE one per line.
-      Lines starting with 'exclude:' specify locations to exclude from backup.
-      Lines starting with 'pre:' and 'post:' specify shell commands to run
-      before and after backup running.
-      Lines starting with 'compress:' specify which kind of compression to
-      apply to archive. Possible values: tar, gzip. Default: gzip
+    Switches:
+      -f, --file FILE
+          Files/dirs to backup should be listed in FILE one per line.
+          Lines starting with 'exclude:' specify locations to exclude from backup.
+          Lines starting with 'pre:' and 'post:' specify shell commands to run
+          before and after backup running.
+          Lines starting with 'compress:' specify which kind of compression to
+          apply to archive. Possible values: tar, gzip. Default: gzip
 
-      Several -f switches can be specified in which case several archives
-      will be created.
-  -d, --destdir DESTDIR
-      a target dir to put archive into
-  -e, --encrypt KEY
-      encrypt backup with specified GPG key
-  -u, --upload BUCKET
-      upload archive to S3 bucket
-  -r, --rotate NUMBER
-      keep NUMBER of last archives.  This applies both to local storage and to S3
-  --lr, --local-rotate NUMBER
-      The same as -r but for local archives only
-  --rr, --remote-rotate NUMBER
-      The same as -r but for remote archives only
-      These two keys, -lr and -rr override -r
+          Several -f switches can be specified in which case several archives
+          will be created.
+      -d, --destdir DESTDIR
+          a target dir to put archive into
+      -e, --encrypt KEY
+          encrypt backup with specified GPG key
+      -u, --upload BUCKET
+          upload archive to S3 bucket
+      -r, --rotate NUMBER
+          keep NUMBER of last archives.  This applies both to local storage and to S3
+      --lr, --local-rotate NUMBER
+          The same as -r but for local archives only
+      --rr, --remote-rotate NUMBER
+          The same as -r but for remote archives only
+          These two keys, -lr and -rr override -r
 
 Troubleshooting
 ---------------
