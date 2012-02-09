@@ -95,6 +95,7 @@ while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate
         fail "--list requires no other sources (-l, -f) be specified before it"
       else
         BACKUPLIST=$(ls "$OPTARG"/*.list)
+        STRIPNAMES=1
       fi
   esac
 done
@@ -120,6 +121,7 @@ SUFFIX=$(date +%F-%T | sed 's,:,.,g')
 
 for file in $BACKUPLIST; do
   LISTNAME=$(basename $file)
+  [ -n "$STRIPNAMES" ] && LISTNAME=$(echo "$LISTNAME" | sed 's,.list,,') 
   AEXT='tgz'
   COMPRESS='-z'
   BACKUP_LIST=''

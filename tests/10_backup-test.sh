@@ -110,6 +110,10 @@ it_creates_archive_in_destdir() {
   test "$OUTPUT" = "$RESULT"
 }
 
+it_stripts_list_from_archive_name() {
+  ! $BACKUP -l "$WORKDIR/list" -d "$DST" | grep -qi '.list-'
+}
+
 it_does_a_correct_backup() {
   OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST")
   tar -C "$DST" -xf $OUTPUT
