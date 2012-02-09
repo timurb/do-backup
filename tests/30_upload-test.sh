@@ -57,6 +57,10 @@ it_should_produce_usage_about_uploads() {
   $BACKUP 2>&1 | grep -qi upload
 }
 
+it_should_produce_usage_about_secrets_file() {
+  $BACKUP 2>&1 | grep -qi secret
+}
+
 it_should_exit_with_zero_on_successful_upload() {
   OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET")
   cleanup "$OUTPUT"

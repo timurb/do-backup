@@ -16,7 +16,7 @@ before() {
   ARCHIVENAME="files*.tgz"   # this is used only for checking the file created
                              # matches the output
 
-  mkdir -p "$SRC/dir1" "$SRC/dir2" "$DST"
+  mkdir -p "$SRC/dir1" "$SRC/dir2" "$DST" "$WORKDIR/list"
   echo 'file one' > "$SRC/one"
   cat << EOF > "$SRC/two"
 this
@@ -36,6 +36,8 @@ EOF
 
   echo "$SRC" > "$WORKDIR/files-excl"
   echo "exclude:              $SRC/dir2" >> "$WORKDIR/files-excl"
+  cp "$WORKDIR/files1" "$WORKDIR/list/files1.list"
+  cp "$WORKDIR/files2" "$WORKDIR/list/files2.list"
 }
 
 after() {
@@ -44,6 +46,10 @@ after() {
 
 it_displays_usage() {
   $BACKUP 2>&1 | grep -qi 'Usage'
+}
+
+it_produces_usage_about_l_param() {
+  $BACKUP 2>&1 | grep -qi -- ' -l'
 }
 
 it_exits_non_zero_on_usage() {
@@ -60,6 +66,22 @@ it_requires_d_switch() {
 
 it_exits_with_zero_after_successful_backup() {
   $BACKUP -f "$WORKDIR/files" -d "$DST"
+}
+
+it_accepts_l_switch_instead_of_f() {
+  $BACKUP -l "$WORKDIR/list" -d "$DST"
+}
+
+it_fails_on_two_l_switches_specified() {
+  ! $BACKUP -l "$WORKDIR/list" -l "$WORKDIR/list" -d "$DST"
+}
+
+it_fails_on_f_prior_to_l_switch() {
+  ! $BACKUP -f "$WORKDIR/file" -l "$WORKDIR/list" -d "$DST"
+}
+
+it_accepts_f_after_l_switch() {
+  $BACKUP -l "$WORKDIR/list" -f "$WORKDIR/files"  -d "$DST"
 }
 
 it_fails_on_unknown_options() {
@@ -109,7 +131,21 @@ it_backups_correctly_with_provided_several_f_params() {
   diff -r "$SRC" "$DST/$SRC" -q
 }
 
-it_accepts_several_lines_in_list() {
+it_backups_correctly_with_provided_l_param() {
+  OUTPUT=$($BACKUP -l "$WORKDIR/list" -d "$DST")
+  mv "$SRC" "${SRC}1"
+  mkdir "$SRC"
+  cp -ar "${SRC}1/dir1" "$SRC"
+  tar -C "$DST" -xf $(echo $OUTPUT | cut -f 1 -d' ')
+  diff -r "$SRC" "$DST/$SRC" -q
+  rm -rf "$DST/$SRC" "$SRC"
+  mkdir "$SRC"
+  cp -ar "${SRC}1/dir2" "$SRC"
+  tar -C "$DST" -xf  $(echo $OUTPUT | cut -f 2 -d' ')
+  diff -r "$SRC" "$DST/$SRC" -q
+}
+
+iit_accepts_several_lines_in_list() {
   OUTPUT=$($BACKUP -f "$WORKDIR/filesML" -d "$DST")
   tar -C "$DST" -xf $OUTPUT
   rm -rf "$SRC/one" "$SRC/two"

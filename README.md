@@ -48,6 +48,7 @@ the same dir as do-backup (in libshell/ subdir)
 Usage
 -----
 
+<<<<<<< HEAD
     do-backup -f FILE -d DESTDIR [OPTIONS]
 
     Switches:
@@ -61,6 +62,9 @@ Usage
 
           Several -f switches can be specified in which case several archives
           will be created.
+      -l, --list DIR   
+          You can instead place the files specified above into a single dir,
+          name them as *.list and pass this dir's name as a param to --list key.
       -d, --destdir DESTDIR
           a target dir to put archive into
       -e, --encrypt KEY
@@ -92,6 +96,13 @@ This means tests of uploading to S3 were not run. Do as messages suggests.
 
 * ./do-backup: 172: aws: not found
 Place aws command (https://github.com/timkay/aws) somewhere in $PATH
+
+Contributions
+-------------
+
+# Write some tests.
+# Add some code.
+# Send me a pull request.
 
 License
 -------

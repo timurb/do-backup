@@ -18,14 +18,17 @@ Usage:  do-backup -f FILE -d DESTDIR [OPTIONS]
 
         Several -f switches can be specified in which case several archives
         will be created.
+    -l, --list DIR		search *.list files from specified dir and pass them
+                                  as params to -f key
     -d, --destdir DESTDIR	a target dir to put archive into
     -e, --encrypt KEY		encrypt backup with specified GPG key
     -u, --upload BUCKET		upload archive to S3 bucket
+    -s, --secret SECRET         a path to .awssecret secrets file
     -r, --rotate NUMBER		keep NUMBER of last archives
                                 This applies both to local storage and to S3
     --lr, --local-rotate NUMBER	The same as -r but for local archives only
     --rr, --remote-rotate NUMBER	The same as -r but for remote archives only
-	This two keys, -lr and -rr override -r
+      This two keys, --lr and --rr override -r
 EOF
   exit 1
 }
@@ -66,7 +69,7 @@ run_hooks() {
 
 BACKUPLIST=''
 
-while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate: lr: local-rotate: rr: remote-rotate:" "$@"; do
+while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate: lr: local-rotate: rr: remote-rotate: l: list:" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
     d|destdir) DESTDIR="$OPTARG" ;;
@@ -85,6 +88,12 @@ while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate
       RROTATE="$OPTARG"
       [ "$RROTATE" -gt 0 ] || fatal "--remote-rotate requires positive integer as a param"
       ;;
+    l|list)
+      if [ -n "$BACKUPLIST" ]; then
+        fail "--list requires no other sources (-l, -f) be specified before it"
+      else
+        BACKUPLIST=$(ls "$OPTARG"/*.list)
+      fi
   esac
 done
 
@@ -102,7 +111,7 @@ done
 [ -z "$DESTDIR" ] && usage
 
 for list in $BACKUPLIST; do
-  [ -r "$list" ] || fatal "File $list is not existant or unreadable"
+  [ -r "$list" ] || fatal "File $list is not existant or is unreadable"
 done
 
 SUFFIX=$(date +%F-%T | sed 's,:,.,g')
