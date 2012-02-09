@@ -5,6 +5,7 @@ describe "Backup"
 for path in '.' '..'; do
   if [ -x "${path}/do-backup" ]; then
     export BACKUP="${path}/do-backup"
+    export FULLPATH="$(pwd)/${path}/do-backup"
     break
   fi
 done
@@ -67,6 +68,11 @@ it_requires_d_switch() {
 it_exits_with_zero_after_successful_backup() {
   $BACKUP -f "$WORKDIR/files" -d "$DST"
 }
+
+it_should_work_ok_when_run_from_some_other_dir() {
+  cd /
+  $FULLPATH -f "$WORKDIR/files" -d "$DST"
+} 
 
 it_accepts_l_switch_instead_of_f() {
   $BACKUP -l "$WORKDIR/list" -d "$DST"

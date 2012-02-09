@@ -1,7 +1,9 @@
 #!/bin/sh -e
 
-. ./libshell/shell-getopt
-. ./libshell/shell-error
+BASEDIR=$(dirname $0)
+
+. "$BASEDIR/libshell/shell-getopt"
+. "$BASEDIR/libshell/shell-error"
 
 usage() {
   cat << EOF
