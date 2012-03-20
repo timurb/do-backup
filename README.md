@@ -48,7 +48,6 @@ the same dir as do-backup (in libshell/ subdir)
 Usage
 -----
 
-<<<<<<< HEAD
     do-backup -f FILE -d DESTDIR [OPTIONS]
 
     Switches:
