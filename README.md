@@ -28,6 +28,10 @@ You can run them by:   sh ./run-tests.sh
 First run can take up to 15min.
 You need submodules initialized to do that.
 
+(By default tests run 3 rotations when testing backups. If you need more
+thorough testing you can increase this number by setting the ROTATE env
+variable).
+
 Installation
 ------------
 

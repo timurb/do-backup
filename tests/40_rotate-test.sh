@@ -34,7 +34,8 @@ before() {
   SRC="$WORKDIR/src"
   DST="$WORKDIR/dst"
   KEY='test'
-  ROTATE=10
+  ROTATE=${ROTATE:-3}
+  [ "$ROTATE" -lt 3 ] && echo "\$ROTATE of $ROTATE is too low, bailing out" > /dev/stderr && exit 1
   mkdir -p "$SRC" "$DST"
   echo 'file one' > "$SRC/one"
   echo "$SRC" > "$FILELIST"
