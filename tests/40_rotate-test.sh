@@ -160,6 +160,24 @@ it_should_rotate_uploaded_archives_when_using_prefix() {
   cleanup "$CLEANUP"
 }
 
+it_should_rotate_uploaded_archives_when_using_multiple_prefix() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix1/prefix2" -s "$AWSSECRET" -r "$ROTATE" ))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix1/prefix2" -s "$AWSSECRET" -r "$ROTATE" ))
+  CLEANUP="prefix1/prefix2/$FIRST prefix1/prefix2/$SECOND"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix1/prefix2" -s "$AWSSECRET" -r "$ROTATE" )
+    CLEANUP="$CLEANUP prefix1/prefix2/$(basename "$OUTPUT")"
+  done
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix1/prefix2/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix1/prefix2/$SECOND")" ]
+  cleanup "$CLEANUP"
+}
+
 it_should_rotate_uploaded_archives_through_rr_switch() {
   [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
   export BUCKET=$(cat $AWSBUCKET)
