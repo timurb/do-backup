@@ -155,8 +155,8 @@ it_should_rotate_uploaded_archives_when_using_prefix() {
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" -r "$ROTATE" )
     CLEANUP="$CLEANUP prefix/$(basename "$OUTPUT")"
   done
-  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$FIRST" | grep "$FIRST"
-  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$SECOND" | grep "$SECOND"
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$SECOND")" ]
   cleanup "$CLEANUP"
 }
 
@@ -173,8 +173,8 @@ it_should_rotate_uploaded_archives_through_rr_switch() {
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" )
     CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
-  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
-  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND")" ]
   cleanup "$CLEANUP"
 }
 
@@ -191,8 +191,8 @@ it_should_override_r_switch_by_rr() {
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 )
     CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
-  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
-  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND")" ]
   cleanup "$CLEANUP"
 }
 
@@ -209,10 +209,10 @@ it_should_treat_lr_and_rr_switches_differently() {
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))")
     CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
-  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
-  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
   test ! -e "$FIRST"
   test ! -e "$SECOND"
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND")" ]
   cleanup "$CLEANUP"
 }
 
