@@ -142,6 +142,26 @@ it_should_rotate_uploaded_archives() {
   cleanup "$CLEANUP"
 }
 
+it_should_not_break_rotation_on_matching_files_present() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  aws --silent --simple "--secrets-file=$AWSSECRET" put "$BUCKET/zzz/files-0000-00-00-00.00.00.tgz" "$WORKDIR/files"
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
+  CLEANUP="zzz/files-0000-00-00-00.00.00.tgz $(basename $FIRST) $(basename $SECOND)"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" )
+    CLEANUP="$CLEANUP $(basename "$OUTPUT")"
+  done
+  echo 'WARNING!!! This test broken might lead to all other tests being broken!!!'
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND")" ]
+  cleanup "$CLEANUP"
+}
+
 it_should_rotate_uploaded_archives_when_using_prefix() {
   [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
   export BUCKET=$(cat $AWSBUCKET)
