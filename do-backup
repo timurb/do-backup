@@ -176,8 +176,14 @@ for file in $BACKUPLIST; do
         rotator "find \"$DESTDIR\" -name \"$MATCH\"" 'rm -f ' "$LROTATE"
       fi
       if [ -n "$RROTATE" -a -n "$UPLOAD" ]; then
+        BUCKET=$(echo "$UPLOAD" | sed 's,/.*,,')
+        if echo "$UPLOAD" | grep -q '/'; then
+          PREFIX=$(echo "$UPLOAD" | sed 's,[^/]*/,,')
+          PREFIX="$PREFIX/" ||:
+        fi
+        S3MATCH="^${PREFIX}${S3MATCH}"
         rotator "aws --silent --simple \"$SECRET\" ls \"$UPLOAD\" | awk '{print \$4}' | grep \"$S3MATCH\"" \
-                "aws --silent --simple \"$SECRET\" rm $UPLOAD/" \
+                "aws --silent --simple \"$SECRET\" rm \"$BUCKET\"/" \
                 "$RROTATE"
       fi
     fi
