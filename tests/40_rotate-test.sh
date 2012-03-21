@@ -47,7 +47,7 @@ after() {
 #  cleanup S3 after ourselves
 cleanup() {
   [ -n "$1" ] && for file in $(echo "$@"); do
-    aws --silent --simple "--secrets-file=$AWSSECRET" rm "$BUCKET/$(basename $file)"
+    aws --silent --simple "--secrets-file=$AWSSECRET" rm "$BUCKET/$file"
   done ||:
 }
 
@@ -131,14 +131,32 @@ it_should_rotate_uploaded_archives() {
   FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
   # sleep 1   # this is not needed here as upload to S3 is quite lengthy
   SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" ))
-  CLEANUP="$FIRST $SECOND"
+  CLEANUP="$(basename "$FIRST") $(basename "$SECOND")"
   for x in $(seq $(( $ROTATE - 1)) ); do
     # sleep 1   # this is not needed here as upload to S3 is quite lengthy
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" -r "$ROTATE" )
-    CLEANUP="$CLEANUP $OUTPUT"
+    CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
-  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
-  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
+  [ -z "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST")" ]
+  [ -n "$(aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND")" ]
+  cleanup "$CLEANUP"
+}
+
+it_should_rotate_uploaded_archives_when_using_prefix() {
+  [ -r "$AWSSECRET" -a -r "$AWSBUCKET" ] || fail
+  export BUCKET=$(cat $AWSBUCKET)
+
+  FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" -r "$ROTATE" ))
+  # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+  SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" -r "$ROTATE" ))
+  CLEANUP="prefix/$FIRST prefix/$SECOND"
+  for x in $(seq $(( $ROTATE - 1)) ); do
+    # sleep 1   # this is not needed here as upload to S3 is quite lengthy
+    OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" -r "$ROTATE" )
+    CLEANUP="$CLEANUP prefix/$(basename "$OUTPUT")"
+  done
+  ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$FIRST" | grep "$FIRST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/prefix/$SECOND" | grep "$SECOND"
   cleanup "$CLEANUP"
 }
 
@@ -149,11 +167,11 @@ it_should_rotate_uploaded_archives_through_rr_switch() {
   FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" ))
   # sleep 1   # this is not needed here as upload to S3 is quite lengthy
   SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" ))
-  CLEANUP="$FIRST $SECOND"
+  CLEANUP="$(basename "$FIRST") $(basename "$SECOND")"
   for x in $(seq $(( $ROTATE - 1)) ); do
     # sleep 1   # this is not needed here as upload to S3 is quite lengthy
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" )
-    CLEANUP="$CLEANUP $OUTPUT"
+    CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
   ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
   aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
@@ -167,11 +185,11 @@ it_should_override_r_switch_by_rr() {
   FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 ))
   # sleep 1   # this is not needed here as upload to S3 is quite lengthy
   SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 ))
-  CLEANUP="$FIRST $SECOND"
+  CLEANUP="$(basename "$FIRST") $(basename "$SECOND")"
   for x in $(seq $(( $ROTATE - 1)) ); do
     # sleep 1   # this is not needed here as upload to S3 is quite lengthy
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" -r 1 )
-    CLEANUP="$CLEANUP $OUTPUT"
+    CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
   ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
   aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"
@@ -185,11 +203,11 @@ it_should_treat_lr_and_rr_switches_differently() {
   FIRST=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))"))
   # sleep 1   # this is not needed here as upload to S3 is quite lengthy
   SECOND=$( basename $( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))"))
-  CLEANUP="$FIRST $SECOND"
+  CLEANUP="$(basename "$FIRST") $(basename "$SECOND")"
   for x in $(seq $(( $ROTATE - 1)) ); do
     # sleep 1   # this is not needed here as upload to S3 is quite lengthy
     OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --rr "$ROTATE" --lr "$(( $ROTATE - 1))")
-    CLEANUP="$CLEANUP $OUTPUT"
+    CLEANUP="$CLEANUP $(basename "$OUTPUT")"
   done
   ! aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$FIRST" | grep "$FIRST"
   aws --silent --simple "--secrets-file=$AWSSECRET" ls "$BUCKET/$SECOND" | grep "$SECOND"

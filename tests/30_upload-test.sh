@@ -50,7 +50,7 @@ after() {
 
 #  cleanup S3 after ourselves
 cleanup() {
-  [ -n "$1" ] && aws --silent --simple "--secrets-file=$AWSSECRET" rm "$BUCKET/$(basename $1)"  ||:
+  [ -n "$1" ] && aws --silent --simple "--secrets-file=$AWSSECRET" rm "$BUCKET/$1"  ||:
 }
 
 it_should_produce_usage_about_uploads() {
@@ -63,7 +63,7 @@ it_should_produce_usage_about_secrets_file() {
 
 it_should_exit_with_zero_on_successful_upload() {
   OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET" -s "$AWSSECRET")
-  cleanup "$OUTPUT"
+  cleanup "$(basename "$OUTPUT")"
 }
 
 it_should_fail_on_uploading_to_unexistant_bucket(){
@@ -79,7 +79,22 @@ it_should_upload_archive_correctly() {
   rm -rf "$DST"
   mkdir "$DST"
   aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$DST/uploaded.tgz"
-  cleanup "$OUTPUT"
+  cleanup "$(basename "$OUTPUT")"
+  tar -C "$DST" -xf "$DST/uploaded.tgz"
+  diff -r "$SRC" "$DST/$SRC" -q
+}
+
+it_should_be_able_to_use_bucket_with_prefix() {
+  OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" )
+  cleanup "prefix/$(basename "$OUTPUT")"
+}
+
+it_should_upload_to_bucket_with_prefix_correctly() {
+  OUTPUT=$( $BACKUP -f "$WORKDIR/files" -d "$DST" -u "$BUCKET/prefix" -s "$AWSSECRET" )
+  rm -rf "$DST"
+  mkdir "$DST"
+  aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/prefix/$(basename $OUTPUT)" "$DST/uploaded.tgz"
+  cleanup "prefix/$(basename "$OUTPUT")"
   tar -C "$DST" -xf "$DST/uploaded.tgz"
   diff -r "$SRC" "$DST/$SRC" -q
 }
@@ -88,7 +103,7 @@ it_should_be_able_to_upload_encrypted_archive() {
   echo "GPG keyring should be in $KEYRING"
   test -d "$KEYRING" -a -r "$KEYRING/pubring.gpg" -a -r "$KEYRING/secring.gpg"
   OUTPUT=$( GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY -u "$BUCKET" -s "$AWSSECRET" )
-  cleanup "$OUTPUT"
+  cleanup "$(basename "$OUTPUT")"
 }
 
 it_should_be_able_to_upload_encrypted_archive_correctly() {
@@ -98,7 +113,7 @@ it_should_be_able_to_upload_encrypted_archive_correctly() {
   rm -rf "$DST"
   mkdir "$DST"
   aws --silent --simple "--secrets-file=$AWSSECRET" get "$BUCKET/$(basename $OUTPUT)" "$DST/uploaded.gpg"
-  cleanup "$OUTPUT"
+  cleanup "$(basename "$OUTPUT")"
   echo dummy | $GPG -d "$DST/uploaded.gpg" | tar -C "$DST" -zx
   diff -r "$SRC" "$DST/$SRC" -q
 }
