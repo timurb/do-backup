@@ -103,9 +103,9 @@ Place aws command (https://github.com/timkay/aws) somewhere in $PATH
 Contributions
 -------------
 
-# Write some tests.
-# Add some code.
-# Send me a pull request.
+* Write some tests.
+* Add some code.
+* Send me a pull request.
 
 License
 -------

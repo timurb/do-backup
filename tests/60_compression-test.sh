@@ -46,7 +46,7 @@ before() {
   done
 }
 
-xafter() {
+after() {
   rm -rf "$WORKDIR"
 }
 
