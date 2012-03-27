@@ -6,4 +6,4 @@
 	url = git://github.com/bmizerany/roundup.git
 [submodule "aws"]
 	path = aws
-	url = https://github.com/timkay/aws.git
+	url = git://github.com/timkay/aws.git
