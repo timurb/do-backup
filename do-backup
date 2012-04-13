@@ -113,6 +113,8 @@ done
 [ -z "$BACKUPLIST" ] && usage
 [ -z "$DESTDIR" ] && usage
 
+[ -d "$DESTDIR" -a -w "$DESTDIR" ] || fatal "Target directory $DESTDIR not found or not accessible"
+
 for list in $BACKUPLIST; do
   [ -r "$list" ] || fatal "File $list is not existant or is unreadable"
 done

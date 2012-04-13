@@ -102,6 +102,11 @@ it_fails_when_destdir_not_found() {
   ! $BACKUP -f "$WORKDIR/files" -d /some/strange/path
 }
 
+it_produces_a_message_when_destdir_not_found() {
+  OUTPUT="$($BACKUP -f "$WORKDIR/files" -d /some/strange/path 2>&1 ||:)"
+  echo $OUTPUT | grep -qi 'not found or not accessible'
+}
+
 it_creates_archive_in_destdir() {
   OUTPUT=$($BACKUP -f "$WORKDIR/files" -d "$DST")
   RESULT=$(find "$DST" -name "$ARCHIVENAME")
