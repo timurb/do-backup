@@ -21,13 +21,15 @@ Usage:  do-backup -f FILE -d DESTDIR [OPTIONS]
         Several -f switches can be specified in which case several archives
         will be created.
     -l, --list DIR		search *.list files from specified dir and pass them
-                                  as params to -f key
+				as params to -f key
+    --allow-empty		Does not crash on empty lists. Otherwise it crashes.
+				It might be handy for lists with pre/post hooks only.
     -d, --destdir DESTDIR	a target dir to put archive into
     -e, --encrypt KEY		encrypt backup with specified GPG key
     -u, --upload BUCKET		upload archive to S3 bucket
     -s, --secret SECRET         a path to .awssecret secrets file
     -r, --rotate NUMBER		keep NUMBER of last archives
-                                This applies both to local storage and to S3
+				This applies both to local storage and to S3
     --lr, --local-rotate NUMBER	The same as -r but for local archives only
     --rr, --remote-rotate NUMBER	The same as -r but for remote archives only
       This two keys, --lr and --rr override -r
@@ -71,7 +73,7 @@ run_hooks() {
 
 BACKUPLIST=''
 
-while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate: lr: local-rotate: rr: remote-rotate: l: list:" "$@"; do
+while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate: lr: local-rotate: rr: remote-rotate: l: list: allow-empty" "$@"; do
   case $OPTOPT in
     f|file)    BACKUPLIST="$BACKUPLIST $OPTARG" ;;
     d|destdir) DESTDIR="$OPTARG" ;;
@@ -97,6 +99,10 @@ while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate
         BACKUPLIST=$(ls "$OPTARG"/*.list)
         STRIPNAMES=1
       fi
+      ;;
+    allow-empty)
+      ALLOW_EMPTY=1
+      ;;
   esac
 done
 
@@ -153,6 +159,8 @@ for file in $BACKUPLIST; do
     esac
   done < "$file"
 
+  [ -z "$BACKUP_LIST" -a -z "$ALLOW_EMPTY" ] && fatal "Refusing to process empty list $file" ||:
+
   [ -n "$ENCRYPT" ] && EXT='gpg' || EXT="$AEXT"
   ARCHIVE="$DESTDIR/$LISTNAME-$SUFFIX.$AEXT"
   MATCH="$LISTNAME-*.$EXT"
@@ -160,7 +168,10 @@ for file in $BACKUPLIST; do
 
   run_hooks "$PRE"
 
-  tar -C "$DESTDIR" $COMPRESS -cf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
+  if [ -n "$BACKUP_LIST" ]; then
+    tar -C "$DESTDIR" $COMPRESS -cf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
+  fi
+
   if [ -n "$ENCRYPT" ]; then
     gpg -r "$ENCRYPT" -e "$ARCHIVE" 
     ARCHIVE="$ARCHIVE.gpg"
