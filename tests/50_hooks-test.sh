@@ -40,6 +40,10 @@ before() {
   echo "pre: touch $PRE-1" >> "$WORKDIR/files-mixed"
   echo "post: touch $POST-2" >> "$WORKDIR/files-mixed"
 
+  echo "pre: touch $PRE" >> "$WORKDIR/files-empty"
+  echo "pre: touch $PRE-1" >> "$WORKDIR/files-empty"
+  echo "post: touch $POST" >> "$WORKDIR/files-empty"
+  echo "post: touch $POST-1" >> "$WORKDIR/files-empty"
 }
 
 after() {
@@ -95,4 +99,12 @@ it_should_not_produce_backups_on_failing_pre_hooks() {
   $BACKUP -f "$WORKDIR/files-fail-pre" -d "$DST" ||:
   RESULT=$(find "$DST" -name "$ARCHIVENAME")
   [ -z "$RESULT" ]
+}
+
+it_should_run_pre_and_post_hooks_when_using_empty_list_with_allow_empty() {
+  $BACKUP -f "$WORKDIR/files-empty" -d "$DST" --allow-empty
+  test -e "$PRE"
+  test -e "$PRE-1"
+  test -e "$POST"
+  test -e "$POST-1"
 }

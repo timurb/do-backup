@@ -40,7 +40,7 @@ EOF
   cp "$WORKDIR/files1" "$WORKDIR/list/files1.list"
   cp "$WORKDIR/files2" "$WORKDIR/list/files2.list"
 
-  touch "$WORKDIR/empty"
+  touch "$WORKDIR/files-empty"
 }
 
 after() {
@@ -128,11 +128,11 @@ it_does_a_correct_backup() {
 }
 
 it_fails_on_empty_list() {
-  ! $BACKUP -f "$WORKDIR/empty" -d "$DST"
+  ! $BACKUP -f "$WORKDIR/files-empty" -d "$DST"
 }
 
-it_does_not_fail_on_empty_list_with_allow_empty_provided() {
-  $BACKUP -f "$WORKDIR/empty" -d "$DST" --allow-empty
+it_should_not_fail_on_empty_list_with_allow_empty_provided() {
+  $BACKUP -f "$WORKDIR/files-empty" -d "$DST" --allow-empty
 }
 
 it_produces_usage_about_allow_empty_key() {

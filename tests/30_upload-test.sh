@@ -42,6 +42,8 @@ before() {
   echo 'file one' > "$SRC/one"
   echo "$SRC" > "$FILELIST"
   cat $AWSSECRET |sed 's,$,blah,' > "$BADSECRET"
+
+  touch "$WORKDIR/files-empty"
 }
 
 after() {
@@ -116,4 +118,8 @@ it_should_be_able_to_upload_encrypted_archive_correctly() {
   cleanup "$(basename "$OUTPUT")"
   echo dummy | $GPG -d "$DST/uploaded.gpg" | tar -C "$DST" -zx
   diff -r "$SRC" "$DST/$SRC" -q
+}
+
+it_should_not_fail_when_using_empty_lists_with_allow_empty() {
+  $BACKUP -f "$WORKDIR/files-empty" -d "$DST" -u "$BUCKET" -s "$AWSSECRET" --allow-empty
 }

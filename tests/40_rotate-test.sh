@@ -39,6 +39,8 @@ before() {
   mkdir -p "$SRC" "$DST"
   echo 'file one' > "$SRC/one"
   echo "$SRC" > "$FILELIST"
+
+  touch "$WORKDIR/files-empty"
 }
 
 after() {
@@ -267,4 +269,8 @@ it_should_do_a_correct_backup_with_special_file_provided_as_an_input_and_rotatio
   OUTPUT=$( cat "$WORKDIR/files" | $BACKUP -f /proc/self/fd/0 -d "$DST" -r "$ROTATE" | grep -v '/proc/self/fd/0' )
   tar -C "$DST" -xf $OUTPUT
   diff -r "$SRC" "$DST/$SRC" -q
+}
+
+it_should_not_fail_when_using_empty_lists_with_allow_empty() {
+  $BACKUP -f "$WORKDIR/files-empty" -d "$DST" -r 10 --allow-empty
 }

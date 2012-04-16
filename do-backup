@@ -170,14 +170,14 @@ for file in $BACKUPLIST; do
 
   if [ -n "$BACKUP_LIST" ]; then
     tar -C "$DESTDIR" $COMPRESS -cf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
-  fi
 
-  if [ -n "$ENCRYPT" ]; then
-    gpg -r "$ENCRYPT" -e "$ARCHIVE" 
-    ARCHIVE="$ARCHIVE.gpg"
+    if [ -n "$ENCRYPT" ]; then
+      gpg -r "$ENCRYPT" -e "$ARCHIVE" 
+      ARCHIVE="$ARCHIVE.gpg"
+    fi
+    [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
+    echo "$ARCHIVE"
   fi
-  [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
-  echo "$ARCHIVE"
 
   run_hooks "$POST"
 

@@ -41,6 +41,8 @@ before() {
   mkdir -p "$SRC" "$DST"
   echo 'file one' > "$SRC/one"
   echo "$SRC" > "$WORKDIR/files"
+
+  touch "$WORKDIR/files-empty"
 }
 
 after() {
@@ -67,4 +69,8 @@ it_should_encrypt_correctly() {
   OUTPUT=$(GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY)
   echo dummy | $GPG -d $OUTPUT | tar -C "$DST" -zx
   diff -r "$SRC" "$DST/$SRC" -q
+}
+
+it_should_not_fail_when_using_empty_lists_with_allow_empty() {
+  GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files-empty" -d "$DST" -e $KEY --allow-empty
 }
