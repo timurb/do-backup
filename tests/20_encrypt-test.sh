@@ -74,3 +74,9 @@ it_should_encrypt_correctly() {
 it_should_not_fail_when_using_empty_lists_with_allow_empty() {
   GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files-empty" -d "$DST" -e $KEY --allow-empty
 }
+
+it_should_not_leave_unencrypted_archives_when_encrypting() {
+  OUTPUT=$(GNUPGHOME="$KEYRING" $BACKUP -f "$WORKDIR/files" -d "$DST" -e $KEY)
+  UNENCRYPTED=$(echo "$OUTPUT" | sed 's,.gpg,,')
+  ! [ -e "$UNENCRYPTED" ]
+}

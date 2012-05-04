@@ -172,7 +172,8 @@ for file in $BACKUPLIST; do
     tar -C "$DESTDIR" $COMPRESS -cf "$ARCHIVE" $BACKUP_LIST $EXCLUDE_LIST
 
     if [ -n "$ENCRYPT" ]; then
-      gpg -r "$ENCRYPT" -e "$ARCHIVE" 
+      gpg -r "$ENCRYPT" -e "$ARCHIVE"
+      rm -f "$ARCHIVE"
       ARCHIVE="$ARCHIVE.gpg"
     fi
     [ -n "$UPLOAD" ] && aws --silent --simple "$SECRET" put "$UPLOAD/$(basename "$ARCHIVE")" "$ARCHIVE"
