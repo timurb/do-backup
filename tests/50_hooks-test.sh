@@ -108,3 +108,7 @@ it_should_run_pre_and_post_hooks_when_using_empty_list_with_allow_empty() {
   test -e "$POST"
   test -e "$POST-1"
 }
+
+it_runs_hooks_with_passed_IFS() {
+  /bin/false
+}
