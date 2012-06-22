@@ -96,7 +96,7 @@ while getoptex "d: destdir: f: file: e: encrypt: u: upload: s: secret: r: rotate
       ;;
     l|list)
       if [ -n "$BACKUPLIST" ]; then
-        fail "--list requires no other sources (-l, -f) be specified before it"
+        fatal "--list requires no other sources (-l, -f) be specified before it"
       else
         BACKUPLIST=$(ls "$OPTARG"/*.list)
         STRIPNAMES=1
