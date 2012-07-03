@@ -1,0 +1,252 @@
+#!/bin/sh -efu
+# This file is covered by the GNU General Public License,
+# which should be included with libshell as the file LICENSE.
+# All copyright information are listed in the COPYING.
+
+if [ -z "${__included_shell_unittest-}" ]; then
+__included_shell_unittest=1
+
+. $(dirname $0)/libshell/shell-error
+
+# Append tests condition to comment message if test failed.
+unittest_show_condition="${unittest_show_condition-}"
+
+# Called before each test is run.
+setUp() { :; }
+
+# Called after each test is run.
+tearDown() { :; }
+
+# Called before any test is run.
+setUpTests() { :; }
+
+# Called after any test is run.
+tearDownTests() { :; }
+
+# Register new testing function.
+# appendTests (TestFunc)
+__shell_unit_tests=
+appendTests() {
+	while [ "$#" -gt 0 ]; do
+		__shell_unit_tests="$__shell_unit_tests
+$1"
+		shift
+	done
+}
+
+# Automatically register test functions with 'UnitTest' comment.
+# Name of current shell script will be used if argument is not present.
+# registerTests([/tmp/Tests-File])
+# Example:
+# my_testcase_function() { # UnitTest
+#     blah blah blah ...
+# }
+registerTests() {
+	local l="$(sed -ne 's/^\([[:alnum:]_]\+\)().*[[:space:]]*#[[:space:]]*UnitTest/\1/p' "${1:-$0}")"
+	[ -z "$l" ] || appendTests $l
+}
+
+# Skip test (called in testing function)
+shouldSkip() {
+	exit 2
+}
+
+# Asserts that a given shell test condition (or integer) is true.
+# assertTrue([comment], condition)
+# assertTrue([comment], integer)
+assertTrue() {
+	local comment= condition
+	[ "$#" -lt 2 ] ||
+		{ comment="$1"; shift; }
+	condition="$1"; shift
+
+	[ -z "$unittest_show_condition" ] ||
+		comment="${comment:+$comment }($condition) == false"
+
+	if [ -n "${condition##*[!0-9\-]*}" ]; then
+		[ $condition -ne 0 ] ||
+			return 0
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+
+	if ! ( eval "$condition" ) >/dev/null; then
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Asserts that a given shell test condition (or integer) is false.
+# assertFalse([comment], condition)
+# assertFalse([comment], integer)
+assertFalse() {
+	local comment= condition
+	[ "$#" -lt 2 ] ||
+		{ comment="$1"; shift; }
+	condition="$1"; shift
+
+	[ -z "$unittest_show_condition" ] ||
+		comment="${comment:+$comment }($condition) == true"
+
+	if [ -n "${condition##*[!0-9\-]*}" ]; then
+		[ $condition -eq 0 ] ||
+			return 0
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+
+	if ( eval "$condition" ) >/dev/null; then
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Asserts that two arguments are equal to one another.
+# assertEquals([comment], expected, actual)
+assertEquals() {
+	local comment= expected actual
+	[ "$#" -lt 3 ] ||
+		{ comment="$1"; shift; }
+	expected="$1"; shift
+	actual="$1"; shift
+
+	if [ "$expected" != "$actual" ]; then
+		[ -z "$unittest_show_condition" ] ||
+			comment="${comment:+$comment }($expected) != ($actual)"
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Asserts that two arguments are same.
+# assertSame([comment], expected, actual)
+assertSame() {
+	assertEquals "${@-}"
+}
+
+# Asserts that two arguments are not equal to one another.
+# assertNotEquals([comment], expected, actual)
+assertNotEquals() {
+	local comment= expected actual
+	[ "$#" -lt 3 ] ||
+		{ comment="$1"; shift; }
+	expected="$1"; shift
+	actual="$1"; shift
+
+	if [ "$expected" = "$actual" ]; then
+		[ -z "$unittest_show_condition" ] ||
+			comment="${comment:+$comment }($expected) == ($actual)"
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Asserts that two arguments are not same.
+# assertNotSame([comment], expected, actual)
+assertNotSame() {
+	assertNotEquals "${@-}"
+}
+
+# Asserts that argument is a zero-length string.
+# assertNull([comment], value)
+assertNull() {
+	local comment= value
+	[ "$#" -lt 2 ] ||
+		{ comment="$1"; shift; }
+	value="$1"; shift
+
+	if [ -n "$value" ]; then
+		[ -z "$unittest_show_condition" ] ||
+			comment="${comment:+$comment }($value) == ''"
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Asserts that argument is not empty string.
+# assertNotNull([comment], value)
+assertNotNull() {
+	local comment= value
+	[ "$#" -lt 2 ] ||
+		{ comment="$1"; shift; }
+	value="$1"; shift
+
+	if [ -z "$value" ]; then
+		[ -z "$unittest_show_condition" ] ||
+			comment="${comment:+$comment }($value) != ''"
+		[ -z "$comment" ] ||
+			printf '%s' "$comment"
+		exit 1
+	fi
+}
+
+# Display status message after each test.
+messageTest() {
+	case "$3" in
+		0) printf '[done]' ;;
+		1) printf '[FAIL]' ;;
+		2) printf '[skip]' ;;
+		*) printf '[status=%s]' $3 ;;
+	esac
+	printf ' (%s) %s\n' "$1" "$2"
+}
+
+# Display summary statistic.
+showSummary() {
+	if [ "$total" -eq 0 ]; then
+		message "Nothing to do"
+		return
+	fi
+	printf '\n'
+	printf 'tests passed:  %6d %3d%%\n' "$passed" "$((($passed*100)/$total))"
+	printf 'tests failed:  %6d %3d%%\n' "$failed" "$((($failed*100)/$total))"
+	printf 'tests skipped: %6d %3d%%\n' "$skipped" "$((($skipped*100)/$total))"
+	printf 'tests total:   %6d\n\n' "$total"
+}
+
+# Run tests.
+runUnitTests() {
+
+	run_or_exit() {
+		"$@" || fatal "$1() fail rc=$?"
+	}
+
+	run_or_exit setUpTests
+
+	local IFS=' 	
+'
+	__shell_unit_tests="$(printf '%s\n' "$__shell_unit_tests" |sort -u)"
+	set -- ${__shell_unit_tests-}
+
+	local retval=0 rc passed=0 failed=0 skipped=0 total="$#"
+
+	while [ "$#" -gt 0 ]; do
+		run_or_exit setUp
+
+		rc=0
+		msg="$("$1")" || rc=$?
+
+		case "$rc" in
+			0) passed=$(($passed+1)) ;;
+			1) failed=$(($failed+1)); retval=1; ;;
+			2) skipped=$(($skipped+1)) ;;
+		esac
+		run_or_exit messageTest "$1" "$msg" "$rc"
+
+		run_or_exit tearDown
+		shift
+	done
+	run_or_exit showSummary
+	run_or_exit tearDownTests
+
+	return $retval
+}
+
+fi #__included_shell_unittest

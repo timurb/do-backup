@@ -1,0 +1,26 @@
+The file
+	shell-getopt
+Version 1.2 2008 by Alexey Gladkov <legion@altlinux.org>,
+            2008 by Dmitry V. Levin <ldv@altlinux.org>
+Version 1.1 2004 by Raphael <raphael at oninet dot pt>
+Version 1.0 1997 by Grigoriy Strokin (grg@philol.msu.ru), Public Domain
+
+The files
+	shell-quote, shell-args
+are Copyright (C) 2007  Dmitry V. Levin <ldv@altlinux.org>,
+                  2008  Alexey Gladkov <legion@altlinux.org>
+
+The file
+	shell-ini-config
+are Copyright (C) 2008  Stanislav Ievlev <inger@altlinux.org>,
+                  2008  Alexey Gladkov <legion@altlinux.org>
+
+The files
+	shell-version, shell-config, shell-error, shell-ip-address,
+	shell-mail-address, shell-unittest, shell-signal, shell-var
+	shell-source shell-run
+are Copyright (C) 2009  Alexey Gladkov <legion@altlinux.org>
+
+All files in this package may be freely copied under the terms
+of the GNU General Public License (GPL), version 2, or at your
+option any later version.

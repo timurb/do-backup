@@ -1,0 +1,52 @@
+#!/bin/ash -efu
+
+PROG='TEST'
+__libshell_experimental=1
+
+signal_test_handler() {
+	printf '%s\n' "$PROG: signal_test_handler() called"
+}
+
+signal_test1() { # UnitTest
+	expect="EXIT-0"
+	result=$(./signal-data/001-signal)
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test2() { # UnitTest
+	expect="INT-2"
+	result=$(./signal-data/002-signal)
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test3() { # UnitTest
+	expect="EXIT-0
+EXIT-0"
+	result=$(./signal-data/003-signal)
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test4() { # UnitTest
+	expect="BAR1
+BAR2"
+	result=$(./signal-data/004-signal)
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test5() { # UnitTest
+	expect="EXIT-5"
+	result=$(./signal-data/005-signal) ||:
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test6() { # UnitTest
+	expect="Got 5"
+	result=$(./signal-data/006-signal) ||:
+	assertEquals "$result" "$result" "$expect"
+}
+
+signal_test7() { # UnitTest
+	expect=""
+	result=$(./signal-data/007-signal) ||:
+	assertEquals "$result" "$result" "$expect"
+}

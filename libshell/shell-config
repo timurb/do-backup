@@ -1,0 +1,87 @@
+#!/bin/sh -efu
+# This file is covered by the GNU General Public License,
+# which should be included with libshell as the file LICENSE.
+# All copyright information are listed in the COPYING.
+
+if [ -z "${__included_shell_config-}" ]; then
+__included_shell_config=1
+
+. $(dirname $0)/libshell/shell-error
+. $(dirname $0)/libshell/shell-quote
+
+__shell_config_comment='#'
+
+shell_config_get() {
+	[ "$#" -ge 2 -a "$#" -le 3 ] ||
+		fatal "Usage: shell_config_get file name [delim]"
+	local file="$1" name="$2" delim="${3-=}"
+
+	[ -s "$file" ] ||
+		return 0
+	quote_sed_regexp_variable name "$name"
+	sed -n -e "s/^[[:space:]]*$name$delim//p" -- "$file"
+}
+
+shell_config_set() {
+	[ "$#" -ge 3 -a "$#" -le 5 ] ||
+		fatal "Usage: shell_config_set file name value [read-delim [write-delim]]"
+
+	local file="$1" name="$2" value="$3" r_delim="${4-=}" w_delim="${5-=}"
+	local n v nv= created=
+
+	if [ ! -f "$file" ]; then
+		if [ ! -w "${file%/*}" ]; then
+			message "${file%/*}: not writable."
+			return 1
+		fi
+		touch -- "$file" ||
+			return 1
+		created=1
+	fi
+
+	if [ -z "$created" ]; then
+		quote_sed_regexp_variable n "$name"
+
+		if v="$(grep -m1 "^[[:space:]]*$n$r_delim" -- "$file" 2>/dev/null)"; then
+			if [ "${v#*$name$r_delim}" != "$value" ]; then
+				quote_sed_regexp_variable nv "$w_delim$value"
+				sed -i -e "s/^[[:space:]]*$n$r_delim.*/$n$nv/" -- "$file"
+			fi
+			return
+		fi
+
+		if [ -n "${__shell_config_comment-}" ] &&
+		   v="$(grep -m1 "^[[:space:]]*${__shell_config_comment:-#}[[:space:]]*$n$r_delim" -- "$file" 2>/dev/null)"; then
+			quote_sed_regexp_variable v "$v"
+			quote_sed_regexp_variable nv "$w_delim$value"
+			sed -i -e "s/^$v\$/$n$nv/" -- "$file"
+			return
+		fi
+	fi
+
+	printf '%s\n' "$name$w_delim$value" >> "$file"
+}
+
+shell_config_del() {
+	[ "$#" -ge 2 -a "$#" -le 3 ] ||
+		fatal "Usage: shell_config_del file name [delim]"
+	local file="$1" name="$2" delim="${3-=}"
+
+	[ -s "$file" ] ||
+		return 0
+	quote_sed_regexp_variable name "$name"
+	sed -i -e "/^[[:space:]]*$name$delim/d" -- "$file"
+}
+
+shell_config_comment() {
+	[ "$#" -ge 2 -a "$#" -le 3 ] ||
+		fatal "Usage: shell_config_comment file name [delim]"
+	local file="$1" name="$2" delim="${3-=}"
+
+	[ -s "$file" ] ||
+		return 0
+	quote_sed_regexp_variable name "$name"
+	sed -i -e "s/^[[:space:]]*$name$delim.*/${__shell_config_comment:-#}&/" -- "$file"
+}
+
+fi #__included_shell_config

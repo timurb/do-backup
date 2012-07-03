@@ -1,0 +1,31 @@
+#!/bin/ash -efu
+
+opt_check_number_test1() { # UnitTest
+	. ../shell-args
+
+	string="1234"
+	expect="1234"
+	result="$(opt_check_number "NUM" "$string" 2>&1)" ||:
+
+	assertEquals "$result" "$result" "$expect"
+}
+
+opt_check_number_test2() { # UnitTest
+	. ../shell-args
+
+	string="0001"
+	expect="$(message "NUM: $string: invalid number." 2>&1)"
+	result="$(opt_check_number "NUM" "$string" 2>&1)" ||:
+
+	assertEquals "$result" "$result" "$expect"
+}
+
+opt_check_number_test3() { # UnitTest
+	. ../shell-args
+
+	string="1 2"
+	expect="$(message "NUM: $string: invalid number." 2>&1)"
+	result="$(opt_check_number "NUM" "$string" 2>&1)" ||:
+
+	assertEquals "$result" "$result" "$expect"
+}

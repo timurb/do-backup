@@ -1,0 +1,33 @@
+#!/bin/ash -efu
+
+PROG='TEST'
+
+fatal_test1() { # UnitTest
+	. ../shell-error
+	expect="$PROG: message message;"
+	result=`fatal "message message" 2>&1 |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}
+
+fatal_test2() { # UnitTest
+	. ../shell-error
+	expect="$PROG: message;message;"
+	result=`fatal "message
+message" 2>&1 |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}
+
+fatal_test3() { # UnitTest
+	. ../shell-error
+	zzz=ZZZ
+	expect="$PROG: message ZZZ message;"
+	result=`fatal "message $zzz message" 2>&1 |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}
+
+fatal_test4() { # UnitTest
+	. ../shell-error
+	expect="$PROG: message message;"
+	result=`{ fatal "message message" 2>&1; echo "another message"; } |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}

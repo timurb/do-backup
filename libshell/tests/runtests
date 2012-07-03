@@ -1,0 +1,33 @@
+#!/bin/sh -efu
+
+srcdir="$(readlink -ev ..)"
+export PATH="$srcdir:$PATH"
+
+. ../shell-unittest
+
+WORKDIR=
+setUpTests() {
+	WORKDIR="$(mktemp -d "$PROG.XXXXXXXXX")"
+}
+
+tearDownTests() {
+	rm -rf -- "$WORKDIR"
+}
+
+for s in \
+	quote_sed_regexp quote_shell string_quote_remove \
+	opt_check_dir opt_check_number opt_check_read \
+	quote_sed_regexp_variable quote_shell_variable \
+	getopt signal \
+	fatal message verbose \
+	quote_shell_args \
+	ini_config_get ini_config_set \
+	shell_var_unquote shell_var_trim \
+	fill_mask \
+	;
+do
+	. "./$s"
+	registerTests "./$s"
+done
+
+runUnitTests

@@ -1,0 +1,89 @@
+#!/bin/sh -efu
+
+if [ -z "${__included_shell_array-}" ]; then
+__included_shell_array=1
+
+if [ -n "${__libshell_experimental-}" ]; then
+
+#. shell-crc32
+
+# arr[ZZZ-zzz] = "XXX-xxx"
+#
+# ARRAY_arr_{n}_key="ZZZ-zzz"
+# ARRAY_arr_{n}_arg="XXX-xxx"
+# ARRAY_arr_{sign}={n}
+# ARRAY_arr={size}
+
+# Usage: array ARRNAME key value
+#    or: array ARRNAME key
+#    or: array ARRNAME
+array()
+{
+	local arr key arg num i
+	arr="$1"
+	[ "$#" -lt 2 ] || key="$2"
+	[ "$#" -lt 3 ] || arg="$3"
+
+	eval "num=\${ARRAY_$arr:-0}"
+	if [ "$#" -eq 1 ]; then
+		printf '%d\n' "$num"
+		return
+	fi
+
+	#shell_crc32 "sign" "$key"
+	sign="$(printf '%s' "$key" |sha1sum)"
+	sign="${sign%% *}"
+	eval "i=\"\${ARRAY_${arr}_${sign}-}\""
+
+	if [ "$#" -eq 2 ]; then
+		if [ -n "$i" ]; then
+			eval "arg=\$ARRAY_${arr}_${i}_arg"
+			printf '%s\n' "$arg"
+			return
+		fi
+		return 1
+	fi
+
+	if [ -z "$i" ]; then
+		i="$num"
+		num=$(($num+1))
+		eval "ARRAY_$arr=\$num"
+	fi
+
+	eval "ARRAY_${arr}_${i}_key=\"\$key\""
+	eval "ARRAY_${arr}_${i}_arg=\"\$arg\""
+	eval "ARRAY_${arr}_${sign}=\"\$i\""
+}
+
+# Usage: shell_array_foreach ARRNAME callback
+array_foreach()
+{
+	local arrname callback i num key arg
+	arrname="$1"; shift
+	callback="$1"; shift
+
+	eval "num=\${ARRAY_$arrname:-0}"
+	[ "$num" -gt 0 ] ||
+		return 0
+	i=0
+	while [ $i -lt $num ]; do
+		eval "key=\"\$ARRAY_${arrname}_${i}_key\""
+		eval "arg=\"\$ARRAY_${arrname}_${i}_arg\""
+		$callback "$i" "$key" "$arg"
+		i=$(($i+1))
+	done
+}
+
+array_flip()
+{
+	local arrname tmp key1 key2 num1 num2
+	arrname="$1"; shift
+	key1="$1"; shift
+	key2="$1"; shift
+
+	eval 
+}
+
+fi #__libshell_experimental
+
+fi #__included_shell_array

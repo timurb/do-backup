@@ -1,0 +1,73 @@
+#!/bin/sh -efu
+# This file is covered by the GNU General Public License,
+# which should be included with libshell as the file LICENSE.
+# All copyright information are listed in the COPYING.
+
+if [ -z "${__included_shell_signal-}" ]; then
+__included_shell_signal=1
+
+. $(dirname $0)/libshell/shell-error
+. $(dirname $0)/libshell/shell-quote
+
+__shell_signal_handlers=
+# Set handler code whan any of the specified signals are received.
+# Return code of handler function will be ignored. Special handlers is
+# SIG_IGN and SIG_DFL (See signal(2)).
+#
+# Usage example:
+# signal_handler 'echo $arg' TERM EXIT HUP
+# signal_handler SIG_IGN     TERM EXIT HUP
+# signal_handler SIG_DFL     TERM EXIT HUP
+signal_handler() {
+	local action real_action sign
+	action="$1"; shift
+
+	for sign; do
+		sign="${sign#SIG}"
+		case "$action" in
+			SIG_IGN)
+				eval "unset __signal_handlers_$sign"
+				real_action=:
+				trap : "$sign"
+				;;
+			SIG_DFL)
+				eval "unset __signal_handlers_$sign"
+				real_action=-
+				trap - "$sign"
+				;;
+			*)
+				eval "handler=\"\${__signal_handlers_$sign-} \$action;\""
+				trap "$handler" "$sign"
+				eval "__signal_handlers_$sign=\"\$handler\""
+				;;
+		esac
+	done
+}
+
+# Set exit handler. Return code of handler function will be ignored.
+#
+# Usage example:
+# exit_function() { echo "Exit with return code '$1'"; }
+# set_cleanup_handler exit_function
+__cleanup_handler_name=
+set_cleanup_handler() {
+	__cleanup_handler_name="${1-}"
+	__cleanup_handler() {
+		trap - EXIT
+		[ -z "${__cleanup_handler_name-}" ] ||
+			"$__cleanup_handler_name" "$1" ||:
+		exit "$1"
+	}
+	signal_handler '__cleanup_handler $?' EXIT
+	signal_handler '__cleanup_handler  1' HUP PIPE INT QUIT TERM
+}
+
+# Remove exit handler.
+#
+# Usage example: unset_cleanup_handler
+unset_cleanup_handler() {
+	signal_handler SIG_DFL EXIT HUP PIPE INT QUIT TERM
+	__cleanup_handler_name=
+}
+
+fi #__included_shell_signal

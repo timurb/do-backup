@@ -1,0 +1,19 @@
+#!/bin/ash -efu
+
+PROG='TEST'
+
+verbose_test1() { # UnitTest
+	. ../shell-error
+	verbose=1
+	expect="$PROG: message message;"
+	result=`verbose "message message" 2>&1 |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}
+
+verbose_test2() { # UnitTest
+	. ../shell-error
+	verbose=
+	expect=
+	result=`verbose "message message" 2>&1 |tr '\n' ';'`
+	assertEquals "$result" "$result" "$expect"
+}
