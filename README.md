@@ -100,6 +100,12 @@ This means tests of uploading to S3 were not run. Do as messages suggests.
 * ./do-backup: 172: aws: not found
 Place aws command (https://github.com/timkay/aws) somewhere in $PATH
 
+* After importing public key to the box you are doing encrypted backups on you are likely
+to meet the following message: `gpg: 681BB479: There is no assurance this key belongs to the named user`
+To fix that: `gpg --edit-key 681BB471` and set the key to the ultimate trust via `trust` command.
+
+
+
 Contributions
 -------------
 
